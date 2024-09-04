@@ -417,3 +417,13 @@ variable "tags" {
   default     = null
   description = "(Optional) Tags of the resource."
 }
+
+variable "tags_inherit_from" {
+  type        = string
+  default     = "none"
+  description = "(Optional) The level from which tags should be inherited."
+  validation {
+    condition     = contains(["none", "resource_group", "subscription"], var.tags_inherit_from)
+    error_message = "tags_inherit_from must be one of 'none', 'resource_group', or 'subscription'."
+  }
+}
