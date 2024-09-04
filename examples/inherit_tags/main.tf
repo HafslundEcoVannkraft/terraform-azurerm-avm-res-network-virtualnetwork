@@ -73,13 +73,24 @@ resource "azurerm_resource_group" "this" {
 }
 
 # Creating a virtual network with a unique name, telemetry settings, and in the specified resource group and location.
-module "vnet" {
+module "vnet1" {
   source              = "../../"
-  name                = module.naming.virtual_network.name
+  name                = "${module.naming.virtual_network.name}-01"
   enable_telemetry    = true
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
   tags_inherit_from   = "resource_group"
 
   address_space = ["10.0.0.0/16"]
+}
+
+module "vnet2" {
+  source              = "../../"
+  name                = "${module.naming.virtual_network.name}-02"
+  enable_telemetry    = true
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+  tags_inherit_from   = "subscription"
+
+  address_space = ["10.1.0.0/16"]
 }
