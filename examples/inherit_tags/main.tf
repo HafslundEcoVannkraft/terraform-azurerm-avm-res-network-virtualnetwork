@@ -55,7 +55,7 @@ locals{
 }
 
 resource "time_rotating" "this" {
-  rotation_minutes = 3
+  rotation_minutes = 10
 }
 
 resource "random_pet" "tag" {
@@ -79,7 +79,9 @@ module "vnet1" {
   enable_telemetry    = true
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
-  tags_inherit_from   = "resource_group"
+  tag_inheritance     = {
+    resource_group = true
+  }
 
   address_space = ["10.0.0.0/16"]
 }
@@ -90,7 +92,36 @@ module "vnet2" {
   enable_telemetry    = true
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
-  tags_inherit_from   = "subscription"
+  tag_inheritance     = {
+    subscription = true
+  }
 
   address_space = ["10.1.0.0/16"]
+}
+
+resource "terraform_data" "resource_group_name" {
+  input = azurerm_resource_group.this.name
+}
+
+module "vnet_dynamic_resource_group_name" {
+  source              = "../../"
+  name                = "${module.naming.virtual_network.name}-03"
+  enable_telemetry    = true
+  resource_group_name = terraform_data.resource_group_name.output
+  location            = azurerm_resource_group.this.location
+  tag_inheritance     = {
+    resource_group = true
+  }
+
+  address_space = ["10.2.0.0/16"]
+}
+
+module "vnet_no_inheritance" {
+  source              = "../../"
+  name                = "${module.naming.virtual_network.name}-04"
+  enable_telemetry    = true
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+
+  address_space = ["10.3.0.0/16"]
 }
