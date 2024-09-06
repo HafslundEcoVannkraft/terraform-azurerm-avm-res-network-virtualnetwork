@@ -1,7 +1,7 @@
 <!-- BEGIN_TF_DOCS -->
-# Simple example for the Azure Virtual Network module
+# Simple example with tag inheritance
 
-This shows how to create and manage Azure Virtual Networks (vNets) using the minimal, default values from the module.
+This shows how to create and manage Azure Virtual Networks (vNets) inheriting tags from the resource group or subscription. The purpose is to have idempotent deployments where a policy is used to cascade tags.
 
 ```hcl
 terraform {
@@ -14,6 +14,10 @@ terraform {
     random = {
       source  = "hashicorp/random"
       version = "~> 3.5"
+    }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.12"
     }
   }
 }
@@ -46,21 +50,87 @@ module "naming" {
   version = "~> 0.3"
 }
 
+locals {
+  random_tags = {
+    (random_pet.tag[0].id) = random_pet.tag[1].id
+    (random_pet.tag[2].id) = random_pet.tag[3].id
+    (random_pet.tag[4].id) = random_pet.tag[5].id
+    (random_pet.tag[6].id) = random_pet.tag[7].id
+    (random_pet.tag[8].id) = random_pet.tag[9].id
+  }
+}
+
+resource "time_rotating" "this" {
+  rotation_minutes = 10
+}
+
+resource "random_pet" "tag" {
+  count = 10
+
+  keepers = {
+    time_stamp = time_rotating.this.id
+  }
+}
+
 # This is required for resource modules
 resource "azurerm_resource_group" "this" {
   location = module.regions.regions[random_integer.region_index.result].name
   name     = module.naming.resource_group.name_unique
+  tags     = local.random_tags
 }
 
 # Creating a virtual network with a unique name, telemetry settings, and in the specified resource group and location.
-module "vnet" {
+module "vnet1" {
   source              = "../../"
-  name                = module.naming.virtual_network.name
+  name                = "${module.naming.virtual_network.name}-01"
+  enable_telemetry    = true
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+  tag_inheritance = {
+    resource_group = true
+  }
+
+  address_space = ["10.0.0.0/16"]
+}
+
+module "vnet2" {
+  source              = "../../"
+  name                = "${module.naming.virtual_network.name}-02"
+  enable_telemetry    = true
+  resource_group_name = azurerm_resource_group.this.name
+  location            = azurerm_resource_group.this.location
+  tag_inheritance = {
+    subscription = true
+  }
+
+  address_space = ["10.1.0.0/16"]
+}
+
+resource "terraform_data" "resource_group_name" {
+  input = azurerm_resource_group.this.name
+}
+
+module "vnet_dynamic_resource_group_name" {
+  source              = "../../"
+  name                = "${module.naming.virtual_network.name}-03"
+  enable_telemetry    = true
+  resource_group_name = terraform_data.resource_group_name.output
+  location            = azurerm_resource_group.this.location
+  tag_inheritance = {
+    resource_group = true
+  }
+
+  address_space = ["10.2.0.0/16"]
+}
+
+module "vnet_no_inheritance" {
+  source              = "../../"
+  name                = "${module.naming.virtual_network.name}-04"
   enable_telemetry    = true
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
 
-  address_space = ["10.0.0.0/16"]
+  address_space = ["10.3.0.0/16"]
 }
 ```
 
@@ -75,12 +145,17 @@ The following requirements are needed by this module:
 
 - <a name="requirement_random"></a> [random](#requirement\_random) (~> 3.5)
 
+- <a name="requirement_time"></a> [time](#requirement\_time) (~> 0.12)
+
 ## Resources
 
 The following resources are used by this module:
 
 - [azurerm_resource_group.this](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group) (resource)
 - [random_integer.region_index](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/integer) (resource)
+- [random_pet.tag](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/pet) (resource)
+- [terraform_data.resource_group_name](https://registry.terraform.io/providers/hashicorp/terraform/latest/docs/resources/data) (resource)
+- [time_rotating.this](https://registry.terraform.io/providers/hashicorp/time/latest/docs/resources/rotating) (resource)
 
 <!-- markdownlint-disable MD013 -->
 ## Required Inputs
@@ -111,7 +186,25 @@ Source: Azure/regions/azurerm
 
 Version: ~> 0.3
 
-### <a name="module_vnet"></a> [vnet](#module\_vnet)
+### <a name="module_vnet1"></a> [vnet1](#module\_vnet1)
+
+Source: ../../
+
+Version:
+
+### <a name="module_vnet2"></a> [vnet2](#module\_vnet2)
+
+Source: ../../
+
+Version:
+
+### <a name="module_vnet_dynamic_resource_group_name"></a> [vnet\_dynamic\_resource\_group\_name](#module\_vnet\_dynamic\_resource\_group\_name)
+
+Source: ../../
+
+Version:
+
+### <a name="module_vnet_no_inheritance"></a> [vnet\_no\_inheritance](#module\_vnet\_no\_inheritance)
 
 Source: ../../
 

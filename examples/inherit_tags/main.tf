@@ -44,7 +44,7 @@ module "naming" {
   version = "~> 0.3"
 }
 
-locals{
+locals {
   random_tags = {
     (random_pet.tag[0].id) = random_pet.tag[1].id
     (random_pet.tag[2].id) = random_pet.tag[3].id
@@ -60,6 +60,7 @@ resource "time_rotating" "this" {
 
 resource "random_pet" "tag" {
   count = 10
+
   keepers = {
     time_stamp = time_rotating.this.id
   }
@@ -79,7 +80,7 @@ module "vnet1" {
   enable_telemetry    = true
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
-  tag_inheritance     = {
+  tag_inheritance = {
     resource_group = true
   }
 
@@ -92,7 +93,7 @@ module "vnet2" {
   enable_telemetry    = true
   resource_group_name = azurerm_resource_group.this.name
   location            = azurerm_resource_group.this.location
-  tag_inheritance     = {
+  tag_inheritance = {
     subscription = true
   }
 
@@ -109,7 +110,7 @@ module "vnet_dynamic_resource_group_name" {
   enable_telemetry    = true
   resource_group_name = terraform_data.resource_group_name.output
   location            = azurerm_resource_group.this.location
-  tag_inheritance     = {
+  tag_inheritance = {
     resource_group = true
   }
 
