@@ -5,7 +5,7 @@
       types: ['opened', 'reopened', 'synchronize']
     merge_group:
     workflow_dispatch:
-  #Trigger again
+  #Trigger
   jobs:
     check:
       runs-on: ubuntu-latest
